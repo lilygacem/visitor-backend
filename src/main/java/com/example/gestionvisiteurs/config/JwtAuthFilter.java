@@ -1,6 +1,5 @@
 package com.example.gestionvisiteurs.config;
 
-import com.example.gestionvisiteurs.config.JwtUtil;
 import com.example.gestionvisiteurs.service.UserService;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;

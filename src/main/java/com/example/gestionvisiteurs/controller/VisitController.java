@@ -5,14 +5,17 @@ import com.example.gestionvisiteurs.dto.VisitDto;
 import com.example.gestionvisiteurs.model.ServiceEntity;
 import com.example.gestionvisiteurs.model.Statut;
 import com.example.gestionvisiteurs.model.Visit;
+import com.example.gestionvisiteurs.model.Visitor;
 import com.example.gestionvisiteurs.repository.ServiceRepository;
 import com.example.gestionvisiteurs.repository.VisitRepository;
+import com.example.gestionvisiteurs.repository.VisitorRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Map;
 
@@ -23,10 +26,12 @@ public class VisitController {
 
     private final VisitRepository visitRepository;
     private final ServiceRepository serviceRepository;
+    private final VisitorRepository visitorRepository;
 
-    public VisitController(VisitRepository visitRepository, ServiceRepository serviceRepository) {
+    public VisitController(VisitRepository visitRepository, ServiceRepository serviceRepository, VisitorRepository visitorRepository) {
         this.visitRepository = visitRepository;
         this.serviceRepository = serviceRepository;
+        this.visitorRepository = visitorRepository;
     }
 
     @GetMapping
@@ -89,6 +94,22 @@ public class VisitController {
         visit.setStatus(Statut.EN_ATTENTE);
         visit.setSatisfaction(visitDto.getSatisfaction());
 
+        // Handle visitor logic
+        String numeroId = visitDto.getNumeroId();
+        Visitor visitor = visitorRepository.findByNumeroId(numeroId).orElse(null);
+
+        if (visitor == null) {
+            // Create new visitor
+            visitor = new Visitor(visitDto.getNom(), visitDto.getPrenom(), numeroId);
+        } else {
+            // Increment visit count
+            visitor.incrementVisits();
+            visitor.updateSatisfaction(visitDto.getSatisfaction());
+        }
+
+        // Save visitor
+        visitorRepository.save(visitor);
+
         return visitRepository.save(visit);
     }
 
@@ -96,17 +117,54 @@ public class VisitController {
     public Visit updateVisitById(@PathVariable Long id, @RequestBody Visit updatedVisit) {
         Visit existingVisit = visitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Visit not found with id: " + id));
+
         existingVisit.setNom(updatedVisit.getNom());
         existingVisit.setPrenom(updatedVisit.getPrenom());
         existingVisit.setNumeroId(updatedVisit.getNumeroId());
         existingVisit.setVisitDate(updatedVisit.getVisitDate());
         existingVisit.setExitDate(updatedVisit.getExitDate());
-        existingVisit.setStatus(updatedVisit.getStatus()); // Ajout de cette ligne
+        existingVisit.setStatus(updatedVisit.getStatus());
+
         if (updatedVisit.getService() != null) {
             existingVisit.setService(updatedVisit.getService());
         }
-        existingVisit.setSatisfaction(updatedVisit.getSatisfaction());
+
+        // Update satisfaction
+        Integer newSatisfaction = updatedVisit.getSatisfaction();
+        existingVisit.setSatisfaction(newSatisfaction);
+
+        // Update visitor satisfaction if provided
+        if (newSatisfaction != null) {
+            Visitor visitor = visitorRepository.findByNumeroId(existingVisit.getNumeroId()).orElse(null);
+            if (visitor != null) {
+                visitor.updateSatisfaction(newSatisfaction);
+                visitorRepository.save(visitor);
+            }
+        }
+
         return visitRepository.save(existingVisit);
+    }
+    @PutMapping("/{id}/satisfaction")
+    public Visit updateVisitSatisfaction(@PathVariable Long id, @RequestParam Integer satisfaction) {
+        if (satisfaction < 1 || satisfaction > 5) {
+            throw new IllegalArgumentException("Satisfaction rating must be between 1 and 5");
+        }
+
+        Visit visit = visitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Visit not found with id: " + id));
+
+        // Update visit satisfaction
+        visit.setSatisfaction(satisfaction);
+
+        // Update visitor's average satisfaction
+        Optional<Visitor> visitorOpt = visitorRepository.findByNumeroId(visit.getNumeroId());
+        if (visitorOpt.isPresent()) {
+            Visitor visitor = visitorOpt.get();
+            visitor.updateSatisfaction(satisfaction);
+            visitorRepository.save(visitor);
+        }
+
+        return visitRepository.save(visit);
     }
 
     @PutMapping("/{id}/statut")
