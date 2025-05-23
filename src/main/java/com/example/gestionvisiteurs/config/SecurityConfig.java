@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/swagger-ui.html/**").permitAll()
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api/login/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN") // Seuls les admins peuvent accéder
                         .requestMatchers(
                                 "/swagger-ui/**",
