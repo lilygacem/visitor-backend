@@ -16,6 +16,7 @@ public class VisitDto {
     private Long serviceId;
     private String statut;
     private Integer satisfaction; // Ajouté
+    private String QrCode;
     
     // ... conservez les constructeurs existants mais ajoutez satisfaction
     public VisitDto(Long id, String nom, String prenom, String numeroId, 
@@ -30,5 +31,6 @@ public class VisitDto {
         this.serviceVisite = serviceVisite;
         this.statut = statut;
         this.satisfaction = satisfaction;
+        this.QrCode = null;
     }
 }

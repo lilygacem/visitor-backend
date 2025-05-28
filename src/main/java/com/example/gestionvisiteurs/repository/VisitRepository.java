@@ -62,6 +62,9 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
     List<Visit> findBySatisfaction(Integer satisfaction);
 
     List<Visit> findTop5ByOrderByVisitDateDesc();
+
+    @Query("SELECT v FROM Visit v WHERE v.qrCode = :qrCode ORDER BY v.visitDate DESC")
+    List<Visit> findByQrCodeOrderByVisitDateDesc(@Param("qrCode") String qrCode);
     long countByStatusAndVisitDateBetween(Statut status, LocalDateTime start, LocalDateTime end);
     long countByVisitDateBetween(LocalDateTime start, LocalDateTime end);
 }

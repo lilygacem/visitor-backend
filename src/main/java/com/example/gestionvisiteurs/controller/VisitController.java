@@ -9,6 +9,7 @@ import com.example.gestionvisiteurs.model.Visitor;
 import com.example.gestionvisiteurs.repository.ServiceRepository;
 import com.example.gestionvisiteurs.repository.VisitRepository;
 import com.example.gestionvisiteurs.repository.VisitorRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -47,9 +48,9 @@ public class VisitController {
             dto.setServiceVisite(visit.getService().getNomService());
             dto.setStatut(visit.getStatus() != null ? visit.getStatus().toString() : "-");
             dto.setServiceVisite(visit.getService().getNomService());
-            dto.setServiceId(visit.getService().getId()); // Ajouter cette ligne
-            dto.setServiceVisite(visit.getService().getNomService());
+            dto.setServiceId(visit.getService().getId());
             dto.setSatisfaction(visit.getSatisfaction());
+            dto.setQrCode(visit.getQrCode()); // Ajout du QR code
             return dto;
         }).collect(Collectors.toList());
     }
@@ -71,15 +72,15 @@ public class VisitController {
                     dto.setHeureArrivee(visit.getVisitDate() != null ? visit.getVisitDate().toString() : null);
                     dto.setHeureSortie(visit.getExitDate() != null ? visit.getExitDate().toString() : null);
                     dto.setServiceVisite(visit.getService().getNomService());
-                    dto.setStatut(visit.getStatus().name()); // Au lieu de toString()
+                    dto.setStatut(visit.getStatus().name());
                     dto.setServiceVisite(visit.getService().getNomService());
-                    dto.setServiceId(visit.getService().getId()); // Ajouter cette ligne
+                    dto.setServiceId(visit.getService().getId());
                     dto.setSatisfaction(visit.getSatisfaction());
+                    dto.setQrCode(visit.getQrCode()); // Ajout du QR code
                     return dto;
                 })
                 .collect(Collectors.toList());
     }
-
     @PostMapping
     public Visit addVisit(@RequestBody VisitDto visitDto) {
         ServiceEntity service = serviceRepository.findById(visitDto.getServiceId()).orElseThrow();
@@ -91,8 +92,9 @@ public class VisitController {
         visit.setVisitDate(LocalDateTime.parse(visitDto.getHeureArrivee()));
         visit.setExitDate(visitDto.getHeureSortie() != null ? LocalDateTime.parse(visitDto.getHeureSortie()) : null);
         visit.setService(service);
-        visit.setStatus(Statut.EN_ATTENTE);
+        visit.setStatus(Statut.PRESENT);
         visit.setSatisfaction(visitDto.getSatisfaction());
+        visit.setQrCode(visitDto.getQrCode()); // Initialisation à null
 
         // Handle visitor logic
         String numeroId = visitDto.getNumeroId();
@@ -124,6 +126,7 @@ public class VisitController {
         existingVisit.setVisitDate(updatedVisit.getVisitDate());
         existingVisit.setExitDate(updatedVisit.getExitDate());
         existingVisit.setStatus(updatedVisit.getStatus());
+        existingVisit.setQrCode(updatedVisit.getQrCode()); // Ajout de la mise à jour du QR code
 
         if (updatedVisit.getService() != null) {
             existingVisit.setService(updatedVisit.getService());
@@ -227,4 +230,50 @@ public List<VisitDto> getRecentVisits() {
         })
         .collect(Collectors.toList());
 }
+
+    // Ajoutez cette méthode dans VisitController.java
+    @GetMapping("/by-qrcode")
+    public ResponseEntity<Long> getLatestVisitIdByQrCode(@RequestParam String qrCode) {
+        // Récupère toutes les visites avec ce QR code, triées par date décroissante
+        List<Visit> visits = visitRepository.findByQrCodeOrderByVisitDateDesc(qrCode);
+
+        if (!visits.isEmpty()) {
+            // Prend la première visite (la plus récente)
+            Visit latestVisit = visits.get(0);
+            return ResponseEntity.ok(latestVisit.getId_visit());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/{id}/satisfaction-only")
+    public Visit updateVisitSatisfactionOnly(@PathVariable Long id, @RequestParam Integer satisfaction) {
+        if (satisfaction == null || satisfaction < 1 || satisfaction > 5) {
+            throw new IllegalArgumentException("Satisfaction rating must be between 1 and 5");
+        }
+
+        Visit visit = visitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Visit not found with id: " + id));
+
+        // Update only satisfaction
+        visit.setSatisfaction(satisfaction);
+
+        // Update visitor's average satisfaction if visitor exists
+        Optional<Visitor> visitorOpt = visitorRepository.findByNumeroId(visit.getNumeroId());
+        if (visitorOpt.isPresent()) {
+            Visitor visitor = visitorOpt.get();
+            visitor.updateSatisfaction(satisfaction);
+            visitorRepository.save(visitor);
+        }
+
+        return visitRepository.save(visit);
+    }
+
+    // Ajoutez cette méthode dans VisitController.java
+    @GetMapping("/{id}")
+    public ResponseEntity<Visit> getVisitById(@PathVariable Long id) {
+        Optional<Visit> visit = visitRepository.findById(id);
+        return visit.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 }

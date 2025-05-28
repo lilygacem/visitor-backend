@@ -30,4 +30,7 @@ public class Visit {
     
     @Column(nullable = true) // Permet les valeurs nulles
     private Integer satisfaction; // 1-5 ou null si non noté
+
+    @Column(nullable = true)
+    private String qrCode; // Nouvel attribut pour le QR code
 }
