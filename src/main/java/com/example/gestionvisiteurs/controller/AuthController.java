@@ -6,11 +6,12 @@ import com.example.gestionvisiteurs.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -26,6 +27,11 @@ public class AuthController {
         UserDetails userDetails = userService.loadUserByUsername(request.getUsername());
         String jwt = jwtUtil.generateToken(userDetails.getUsername());
 
-        return ResponseEntity.ok(new AuthResponse(jwt));
+        String role = userDetails.getAuthorities().stream()
+            .findFirst()
+            .map(GrantedAuthority::getAuthority)
+            .orElse("ROLE_USER");
+    
+        return ResponseEntity.ok(new AuthResponse(jwt, role));
     }
 }

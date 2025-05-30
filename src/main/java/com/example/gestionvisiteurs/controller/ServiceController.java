@@ -2,7 +2,6 @@ package com.example.gestionvisiteurs.controller;
 
 import com.example.gestionvisiteurs.model.ServiceEntity;
 import com.example.gestionvisiteurs.service.ServiceService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,7 +13,6 @@ public class ServiceController {
 
     private final ServiceService serviceService;
 
-    @Autowired
     public ServiceController(ServiceService serviceService) {
         this.serviceService = serviceService;
     }

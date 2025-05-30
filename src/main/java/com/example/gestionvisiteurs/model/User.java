@@ -2,6 +2,11 @@ package com.example.gestionvisiteurs.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.Collection;
+import java.util.Collections;
 
 @Entity
 @Getter
@@ -17,4 +22,10 @@ public class User {
     private String username;
 
     private String password;
+
+    private String role; // ROLE_ADMIN or ROLE_USER
+
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(new SimpleGrantedAuthority(role));
+    }
 }

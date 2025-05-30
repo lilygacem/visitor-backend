@@ -15,11 +15,20 @@ public class DataLoader {
     private final PasswordEncoder passwordEncoder;
 
     @PostConstruct
-    public void insertUser() {
+    public void insertUsers() {
         if (userRepository.findByUsername("admin").isEmpty()) {
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setPassword(passwordEncoder.encode("admin"));
+            admin.setRole("ROLE_ADMIN"); // Ajout explicite du rôle
+            userRepository.save(admin);
+        }
+
+        if (userRepository.findByUsername("user").isEmpty()) {
             User user = new User();
-            user.setUsername("admin");
-            user.setPassword(passwordEncoder.encode("admin"));
+            user.setUsername("user");
+            user.setPassword(passwordEncoder.encode("user"));
+            user.setRole("ROLE_USER");
             userRepository.save(user);
         }
     }
