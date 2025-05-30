@@ -92,9 +92,13 @@ public class VisitController {
         visit.setVisitDate(LocalDateTime.parse(visitDto.getHeureArrivee()));
         visit.setExitDate(visitDto.getHeureSortie() != null ? LocalDateTime.parse(visitDto.getHeureSortie()) : null);
         visit.setService(service);
-        visit.setStatus(Statut.PRESENT);
+        visit.setStatus(Statut.PRESENT); // Changé de EN_ATTENTE à PRESENT
         visit.setSatisfaction(visitDto.getSatisfaction());
-        visit.setQrCode(visitDto.getQrCode()); // Initialisation à null
+        visit.setQrCode(visitDto.getQrCode());
+
+        // Mettre à jour le statut du service à "occupé"
+        service.setStatut("occupé");
+        serviceRepository.save(service);
 
         // Handle visitor logic
         String numeroId = visitDto.getNumeroId();
